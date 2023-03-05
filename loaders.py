@@ -23,10 +23,10 @@ def load_facial_alge():
         res[age] = 0
         for filename in os.listdir(f):
             ff = os.path.join(f, filename)
-            #cv2.imwrite(f"./data_merged/{age}_{ctr1}.jpg", cv2.imread(ff), [int(cv2.IMWRITE_JPEG_QUALITY), 100])
-            #ctr1+=1
-            #if ctr1 % 1000 == 0:
-            #    print(ctr1)
+            cv2.imwrite(f"./data_merged/{age}_{ctr1}.jpg", cv2.imread(ff), [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+            ctr1+=1
+            if ctr1 % 1000 == 0:
+               print(ctr1)
             res[age] += 1
     return res
 
@@ -42,10 +42,10 @@ def load_utk_face():
             if age >80:
                 continue
             if age in res:
-                #shutil.copyfile(f,f"./data_merged/{age}_{ctr1}.jpg")
-                #ctr1+=1
-                #if ctr1 % 1000 == 0:
-                #    print(ctr1)
+                shutil.copyfile(f,f"./data_merged/{age}_{ctr1}.jpg")
+                ctr1+=1
+                if ctr1 % 1000 == 0:
+                   print(ctr1)
                 res[age]+=1
             else:
                 res[age]=1
