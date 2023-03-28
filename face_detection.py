@@ -36,17 +36,23 @@ with mp_face_detection.FaceDetection(
     if not results.detections:
       continue
     annotated_image = image.copy()
+    idx = 0
     for detection in results.detections:
       print('Nose tip:')
       print(mp_face_detection.get_key_point(
           detection, mp_face_detection.FaceKeyPoint.NOSE_TIP))
       mp_drawing.draw_detection(annotated_image, detection)
-    cv2.imwrite('annotated_image' + str(idx) + '.png', annotated_image)
-    
-    detection = results.detections[0].location_data.relative_bounding_box
-    cropped_image = CropImage(image, detection.xmin, detection.ymin, detection.width, detection.height)
-    cv2.imwrite('cropped_image' + str(idx) + '.png', cropped_image)
+      
+      data = detection.location_data.relative_bounding_box
+      cropped_image = CropImage(image, data.xmin, data.ymin, data.width, data.height)
+      cv2.imwrite('cropped_image' + str(idx) + '.png', cropped_image)
+      idx += 1
 
+cv2.imshow('Mediapipe', annotated_image)
+cv2.imwrite('annotated_image' + str(idx) + '.png', annotated_image) 
+
+cv2.waitKey(0)
+cv2.destroyAllWindows()
 # For webcam input:
 # cap = cv2.VideoCapture(0)
 # if not cap.isOpened():
