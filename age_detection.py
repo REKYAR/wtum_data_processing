@@ -5,11 +5,15 @@ from OpenGL.GL import *
 import OpenGL.GL as gl
 import glfw
 from imgui.integrations.glfw import GlfwRenderer
+import imgui_datascience as imgui_ds
 
-path_to_font = None
+import cv2
+import mediapipe as mp
+import face_detection as fd
 
+def frame_commands(face_detection, mp_drawing, capture):
+    image = fd.webcam_face_detection(capture, face_detection)
 
-def frame_commands():
     io = imgui.get_io()
     if io.key_ctrl and io.keys_down[glfw.KEY_Q]:
         sys.exit(0)
@@ -26,9 +30,11 @@ def frame_commands():
 
     imgui.text("Hello world")
 
+    imgui_ds.imgui_cv.image(image)
+
     imgui.end()
 
-def render_frame(impl, window, font):
+def render_frame(impl, window, font, face_detection, mp_drawing, capture):
     glfw.poll_events()
     impl.process_inputs()
     imgui.new_frame()
@@ -38,7 +44,7 @@ def render_frame(impl, window, font):
 
     if font is not None:
         imgui.push_font(font)
-    frame_commands()
+    frame_commands(face_detection, mp_drawing, capture)
     if font is not None:
         imgui.pop_font()
 
@@ -72,17 +78,27 @@ def impl_glfw_init():
 
 
 def main():
+    # face detection
+    mp_face_detection = mp.solutions.face_detection
+    mp_drawing = mp.solutions.drawing_utils
+
+    capture = cv2.VideoCapture(0)
+
+    # imgui setup
     imgui.create_context()
     window = impl_glfw_init()
 
     impl = GlfwRenderer(window)
 
+    path_to_font = None
     io = imgui.get_io()
     jb = io.fonts.add_font_from_file_ttf(path_to_font, 30) if path_to_font is not None else None
     impl.refresh_font_texture()
 
-    while not glfw.window_should_close(window):
-        render_frame(impl, window, jb)
+    with mp_face_detection.FaceDetection(
+    model_selection=0, min_detection_confidence=0.5) as face_detection:
+        while not glfw.window_should_close(window):
+            render_frame(impl, window, jb, face_detection, mp_drawing, capture)
 
     impl.shutdown()
     glfw.terminate()
