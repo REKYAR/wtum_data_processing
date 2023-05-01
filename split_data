@@ -97,25 +97,30 @@ sys.executable
 # split learn/validation
 
 def split_dataset(percent_of_files, split):
-    os.mkdir("./generated_dataset_learn_smallset10")
-    os.mkdir("./generated_dataset_validation_smallset10")
+    os.mkdir("./generated_dataset_learn_smallset100prim")
+    os.mkdir("./generated_dataset_validation_smallset100prim")
     for dirname in os.listdir('./generated_dataset'):
         # os.mkdir(f"./generated_dataset_learn/{dirname}")
         # os.mkdir(f"./generated_dataset_validation/{dirname}")
         cnt = 0
+        temp = 1
         cnt_all = (percent_of_files/100) * \
             len(os.listdir(f'./generated_dataset/{dirname}'))
-        cnt_learn = cnt_all * split/100
+        # cnt_learn = cnt_all * split/100
+
         for filename in os.listdir(f'./generated_dataset/{dirname}'):
-            if cnt < cnt_learn:
-                shutil.copyfile(
-                    src=f"./generated_dataset/{dirname}/{filename}", dst=f"./generated_dataset_learn_smallset10/{filename}")
-            elif cnt < cnt_all:
-                shutil.copyfile(src=f"./generated_dataset/{dirname}/{filename}",
-                                dst=f"./generated_dataset_validation_smallset10/{filename}")
-            else:
+            if cnt > cnt_all:
                 break
+            elif temp < 5:  # 20%
+                shutil.copyfile(
+                    src=f"./generated_dataset/{dirname}/{filename}", dst=f"./generated_dataset_learn_smallset100prim/{filename}")
+                temp += 1
+            else:
+                shutil.copyfile(src=f"./generated_dataset/{dirname}/{filename}",
+                                dst=f"./generated_dataset_validation_smallset100prim/{filename}")
+                temp = 1
+
             cnt += 1
 
 
-split_dataset(10, 80)
+split_dataset(100, 80)
