@@ -18,6 +18,7 @@ from tensorflow.keras.layers import (
 )
 
 
+# load data
 def load_dataset(DATASET_DIR, DATASET_DIR1):
     """
     Load the CIFAR-10 dataset
@@ -122,17 +123,12 @@ def extract_features(images):
 
 ####################### pierwszy plik do uczenia, drugi walidacja ############################
 (x_train, y_train), (x_valid, y_valid) = load_dataset(
-    "./generated_dataset_learn_smallset30prim",
-    "./generated_dataset_validation_smallset30prim",
+    "./generated_dataset_learn_smallset30bis",
+    "./generated_dataset_validation_smallset30bis",
 )
 #############################################################################################
 
-print(x_train.shape)
-print(y_train.shape)
-
 # flattening
-
-
 x_train = x_train / 255
 x_valid = x_valid / 255
 
@@ -169,6 +165,7 @@ model.add(Dense(units=512, activation="relu"))
 model.add(Dense(units=num_categories, activation="softmax"))
 model.summary()
 
+model.compile(loss="categorical_crossentropy", metrics=["accuracy"])
 
 history = model.fit(
     x_train, y_train, epochs=15, verbose=1, validation_data=(x_valid, y_valid)
