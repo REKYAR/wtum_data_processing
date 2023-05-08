@@ -18,19 +18,17 @@ from tensorflow.keras.layers import (
 )
 
 
-def load_dataset():
+def load_dataset(DATASET_DIR, DATASET_DIR1):
     """
-        Load the CIFAR-10 dataset
+    Load the CIFAR-10 dataset
     """
-
-    DATASET_DIR = './generated_dataset_learn_smallset30prim'
 
     image_paths = []
     target_labels = []
 
     for filename in os.listdir(DATASET_DIR):
         image_path = os.path.join(DATASET_DIR, filename)
-        temp = filename.split('_')
+        temp = filename.split("_")
         age = int(temp[0])
         image_paths.append(image_path)
 
@@ -56,19 +54,18 @@ def load_dataset():
             target_labels.append(0)
 
     df = pd.DataFrame()
-    df['image'], df['target'] = image_paths, target_labels
-    X = extract_features(df['image'])
-    Y = df['target']
+    df["image"], df["target"] = image_paths, target_labels
+    X = extract_features(df["image"])
+    Y = df["target"]
 
-# learn data
-    DATASET_DIR1 = './generated_dataset_validation_smallset30prim'
+    # learn data
 
     image_paths1 = []
     target_labels1 = []
 
     for filename in os.listdir(DATASET_DIR1):
         image_path1 = os.path.join(DATASET_DIR1, filename)
-        temp = filename.split('_')
+        temp = filename.split("_")
         age = int(temp[0])
         image_paths1.append(image_path1)
 
@@ -94,34 +91,26 @@ def load_dataset():
             target_labels1.append(0)
 
     dfl = pd.DataFrame()
-    dfl['image'], dfl['target'] = image_paths1, target_labels1
+    dfl["image"], dfl["target"] = image_paths1, target_labels1
 
-    Xl = extract_features(dfl['image'])
-    Yl = dfl['target']
+    Xl = extract_features(dfl["image"])
+    Yl = dfl["target"]
 
     # data shuffel
-    # for X and Y
     Z = np.random.permutation(len(X))
 
-    # Z = np.arange(1, Y.shape[0])
-    # Z = np.random.shuffle(Z)
     X = X[Z]
     Y = Y[Z]
-    # Xs, Ys = sklearn.utils.shuffle(X,Y)
-    # for Xl and Yl
-    # Zl = np.arange(1, Yl.shape[0])
-    # Zl = np.random.shuffle(Zl)
+
     Zl = np.random.permutation(len(Xl))
     Xl = Xl[Zl]
     Yl = Yl[Zl]
-    # if split here
-    # return (X[1:13000, :, :, :], Y[1:13000]), (Xl[1:3000, :, :, :], Yl[1:3000])
     return (X, Y), (Xl, Yl)
 
 
 def extract_features(images):
     features = []
-    for image in (images):
+    for image in images:
         img = load_img(image, color_mode="grayscale")
         img = np.array(img)
         features.append(img)
@@ -131,7 +120,12 @@ def extract_features(images):
     return features
 
 
-(x_train, y_train), (x_valid, y_valid) = load_dataset()
+####################### pierwszy plik do uczenia, drugi walidacja ############################
+(x_train, y_train), (x_valid, y_valid) = load_dataset(
+    "./generated_dataset_learn_smallset30prim",
+    "./generated_dataset_validation_smallset30prim",
+)
+#############################################################################################
 
 print(x_train.shape)
 print(y_train.shape)
@@ -148,34 +142,45 @@ num_categories = 10
 y_train = keras.utils.to_categorical(y_train, num_categories)
 y_valid = keras.utils.to_categorical(y_valid, num_categories)
 
+
+# model 3 + new conv2d 256
 model = Sequential()
-model.add(Conv2D(32, (7, 7), strides=1, padding="same", activation="relu",
-                 input_shape=(200, 200, 1)))
-model.add(Conv2D(32, (5, 5), strides=1, padding="same", activation="relu",
-                 input_shape=(200, 200, 1)))
+model.add(
+    Conv2D(
+        32,
+        (7, 7),
+        strides=1,
+        padding="same",
+        activation="relu",
+        input_shape=(200, 200, 1),
+    )
+)
+model.add(MaxPool2D((2, 2), strides=2, padding="same"))
+model.add(Conv2D(32, (5, 5), strides=1, padding="same", activation="relu"))
 model.add(MaxPool2D((2, 2), strides=2, padding="same"))
 model.add(Conv2D(64, (5, 5), strides=1, padding="same", activation="relu"))
 model.add(MaxPool2D((2, 2), strides=2, padding="same"))
 model.add(Conv2D(128, (5, 5), strides=1, padding="same", activation="relu"))
+model.add(MaxPool2D((2, 2), strides=2, padding="same"))
+model.add(Conv2D(256, (3, 3), strides=1, padding="same", activation="relu"))
 model.add(MaxPool2D((2, 2), strides=2, padding="same"))
 model.add(Flatten())
 model.add(Dense(units=512, activation="relu"))
 model.add(Dense(units=num_categories, activation="softmax"))
 model.summary()
 
-model.compile(loss="categorical_crossentropy", metrics=['accuracy'])
 
 history = model.fit(
-    x_train, y_train, epochs=18, verbose=1, validation_data=(x_valid, y_valid)
+    x_train, y_train, epochs=15, verbose=1, validation_data=(x_valid, y_valid)
 )
 
 
 # Checking the train and test loss and accuracy values from the neural network above.
 
-train_loss = history.history['loss']
-test_loss = history.history['val_loss']
-train_accuracy = history.history['accuracy']
-test_accuracy = history.history['val_accuracy']
+train_loss = history.history["loss"]
+test_loss = history.history["val_loss"]
+train_accuracy = history.history["accuracy"]
+test_accuracy = history.history["val_accuracy"]
 
 # Plotting a line chart to visualize the loss and accuracy values by epochs.
 
@@ -183,36 +188,40 @@ fig, ax = plt.subplots(ncols=2, figsize=(15, 7))
 
 ax = ax.ravel()
 
-ax[0].plot(train_loss, label='Train Loss',
-           color='royalblue', marker='o', markersize=2)
-ax[0].plot(test_loss, label='Test Loss',
-           color='orangered', marker='o', markersize=2)
+ax[0].plot(train_loss, label="Train Loss", color="royalblue", marker="o", markersize=2)
+ax[0].plot(test_loss, label="Test Loss", color="orangered", marker="o", markersize=2)
 
-ax[0].set_xlabel('Epochs', fontsize=14)
-ax[0].set_ylabel('Categorical Crossentropy', fontsize=14)
+ax[0].set_xlabel("Epochs", fontsize=14)
+ax[0].set_ylabel("Categorical Crossentropy", fontsize=14)
 
 ax[0].legend(fontsize=14)
-ax[0].tick_params(axis='both', labelsize=12)
+ax[0].tick_params(axis="both", labelsize=12)
 
-ax[1].plot(train_accuracy, label='Train Accuracy',
-           color='royalblue', marker='o', markersize=2)
-ax[1].plot(test_accuracy, label='Test Accuracy',
-           color='orangered', marker='o', markersize=2)
+ax[1].plot(
+    train_accuracy, label="Train Accuracy", color="royalblue", marker="o", markersize=2
+)
+ax[1].plot(
+    test_accuracy, label="Test Accuracy", color="orangered", marker="o", markersize=2
+)
 
-ax[1].set_xlabel('Epochs', fontsize=14)
-ax[1].set_ylabel('Accuracy', fontsize=14)
+ax[1].set_xlabel("Epochs", fontsize=14)
+ax[1].set_ylabel("Accuracy", fontsize=14)
 
 ax[1].legend(fontsize=14)
-ax[1].tick_params(axis='both', labelsize=12)
+ax[1].tick_params(axis="both", labelsize=12)
 
 
-fig.suptitle(x=0.5, y=0.92,
-             t="Lineplots showing loss and accuracy of CNN model by epochs", fontsize=16)
+fig.suptitle(
+    x=0.5,
+    y=0.92,
+    t="Lineplots showing loss and accuracy of CNN model by epochs",
+    fontsize=16,
+)
 
 fig.show()
 
 # Exporting plot image in PNG format.
-plt.savefig('./final_cnn_loss_accuracy.png', bbox_inches='tight')
+plt.savefig("./final_cnn_loss_accuracy.png", bbox_inches="tight")
 
 
 # serialize model to JSON
