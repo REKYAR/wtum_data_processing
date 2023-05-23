@@ -1,14 +1,16 @@
 import os
+import random
+import string
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from tensorflow.keras.utils import load_img
-import tensorflow.keras as keras
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense
-import tensorflow
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import (
+import tensorflow as tf
+from tensorflow import keras
+from keras.utils import load_img
+from keras.models import Sequential
+from keras.layers import Dense
+from keras.models import Sequential
+from keras.layers import (
     Dense,
     Conv2D,
     MaxPool2D,
@@ -17,130 +19,86 @@ from tensorflow.keras.layers import (
     BatchNormalization,
 )
 
+gpu_devices = tf.config.experimental.list_physical_devices('GPU')
+print(gpu_devices)
+for device in gpu_devices:
+    tf.config.experimental.set_memory_growth(device, True)
 
-# load data
-def load_dataset(DATASET_DIR, DATASET_DIR1):
+
+# generate data by loading in batches
+def dataset_generator(DATASET_DIR : string, batch_size : int):
     """
     Load the CIFAR-10 dataset
     """
+    file_list = os.listdir(DATASET_DIR)
 
-    image_paths = []
-    target_labels = []
+    random.shuffle(file_list)
 
-    for filename in os.listdir(DATASET_DIR):
-        image_path = os.path.join(DATASET_DIR, filename)
-        temp = filename.split("_")
-        age = int(temp[0])
-        image_paths.append(image_path)
+    i = 0
 
-        if age <= 2:
-            target_labels.append(1)
-        elif age <= 11:
-            target_labels.append(2)
-        elif age <= 21:
-            target_labels.append(3)
-        elif age <= 25:
-            target_labels.append(4)
-        elif age <= 27:
-            target_labels.append(5)
-        elif age <= 31:
-            target_labels.append(6)
-        elif age <= 38:
-            target_labels.append(7)
-        elif age <= 48:
-            target_labels.append(8)
-        elif age <= 58:
-            target_labels.append(9)
-        else:
-            target_labels.append(0)
+    while True:
+        for b in range(batch_size):
+            x_batch = []
+            y_batch = []
+            # end of an epoch - time to supply images from the beginning
+            if i == len(file_list):
+                i = 0
+                random.shuffle(file_list)
 
-    df = pd.DataFrame()
-    df["image"], df["target"] = image_paths, target_labels
-    X = extract_features(df["image"])
-    Y = df["target"]
+            filename = file_list[i]
+            image_path = os.path.join(DATASET_DIR, filename)
+            temp = filename.split("_")
+            age = int(temp[0])
+            y = 0
 
-    # learn data
+            if age <= 2:
+                y = 1
+            elif age <= 11:
+                y = 2
+            elif age <= 21:
+                y = 3
+            elif age <= 25:
+                y = 4
+            elif age <= 27:
+                y = 5
+            elif age <= 31:
+                y = 6
+            elif age <= 38:
+                y = 7
+            elif age <= 48:
+                y = 8
+            elif age <= 58:
+                y = 9
 
-    image_paths1 = []
-    target_labels1 = []
-
-    for filename in os.listdir(DATASET_DIR1):
-        image_path1 = os.path.join(DATASET_DIR1, filename)
-        temp = filename.split("_")
-        age = int(temp[0])
-        image_paths1.append(image_path1)
-
-        if age <= 2:
-            target_labels1.append(1)
-        elif age <= 11:
-            target_labels1.append(2)
-        elif age <= 21:
-            target_labels1.append(3)
-        elif age <= 25:
-            target_labels1.append(4)
-        elif age <= 27:
-            target_labels1.append(5)
-        elif age <= 31:
-            target_labels1.append(6)
-        elif age <= 38:
-            target_labels1.append(7)
-        elif age <= 48:
-            target_labels1.append(8)
-        elif age <= 58:
-            target_labels1.append(9)
-        else:
-            target_labels1.append(0)
-
-    dfl = pd.DataFrame()
-    dfl["image"], dfl["target"] = image_paths1, target_labels1
-
-    Xl = extract_features(dfl["image"])
-    Yl = dfl["target"]
-
-    # data shuffel
-    Z = np.random.permutation(len(X))
-
-    X = X[Z]
-    Y = Y[Z]
-
-    Zl = np.random.permutation(len(Xl))
-    Xl = Xl[Zl]
-    Yl = Yl[Zl]
-    return (X, Y), (Xl, Yl)
+            i += 1
+            
+            x_batch.append(extract_features(image_path))
+            y_batch.append(y)
+        yield np.array(x_batch) / 255, keras.utils.to_categorical(np.array(y_batch), 10)
 
 
-def extract_features(images):
-    features = []
-    for image in images:
-        img = load_img(image, color_mode="grayscale")
-        img = np.array(img)
-        features.append(img)
-    features = np.array(features)
-    # ignore this step if using RGB
-    features = features.reshape(len(features), 200, 200, 1)
-    return features
+def extract_features(image_path):
+    img = load_img(image_path, color_mode="grayscale")
+    img = np.array(img)
+    return img
 
 
 ####################### pierwszy plik do uczenia, drugi walidacja ############################
-(x_train, y_train), (x_valid, y_valid) = load_dataset(
-    "./generated_dataset_learn_smallset30bis",
-    "./generated_dataset_validation_smallset30bis",
-)
-#############################################################################################
 
-# flattening
-x_train = x_train / 255
-x_valid = x_valid / 255
-
-# number of categories
 num_categories = 10
 
-y_train = keras.utils.to_categorical(y_train, num_categories)
-y_valid = keras.utils.to_categorical(y_valid, num_categories)
+LEARN_DIR = "./dataset_canny_edges_learn"
+VALIDATION_DIR = "./dataset_canny_edges_learn"
 
+total_learn_files = len(os.listdir(LEARN_DIR))
+total_validation_files = len(os.listdir(VALIDATION_DIR))
+
+batch_size = 32
 
 # model 3 + new conv2d 256
+print("Constructing model...")
 model = Sequential()
+print("Adding the input layer...")
 model.add(
     Conv2D(
         32,
@@ -151,8 +109,11 @@ model.add(
         input_shape=(200, 200, 1),
     )
 )
+print("Adding a MaxPool2D layer...")
 model.add(MaxPool2D((2, 2), strides=2, padding="same"))
+print("Adding a Conv2D layer...")
 model.add(Conv2D(32, (5, 5), strides=1, padding="same", activation="relu"))
+print("Adding a MaxPool2D layer...")
 model.add(MaxPool2D((2, 2), strides=2, padding="same"))
 model.add(Conv2D(64, (5, 5), strides=1, padding="same", activation="relu"))
 model.add(MaxPool2D((2, 2), strides=2, padding="same"))
@@ -161,16 +122,19 @@ model.add(MaxPool2D((2, 2), strides=2, padding="same"))
 model.add(Conv2D(256, (3, 3), strides=1, padding="same", activation="relu"))
 model.add(MaxPool2D((2, 2), strides=2, padding="same"))
 model.add(Flatten())
+print("Adding a Dense layer...")
 model.add(Dense(units=512, activation="relu"))
+print("Adding an output")
 model.add(Dense(units=num_categories, activation="softmax"))
 model.summary()
 
+print("Compiling model...")
 model.compile(loss="categorical_crossentropy", metrics=["accuracy"])
 
-history = model.fit(
-    x_train, y_train, epochs=15, verbose=1, validation_data=(x_valid, y_valid)
-)
-
+print("Training model...")
+history = model.fit_generator(generator=dataset_generator(LEARN_DIR, batch_size), epochs=15,
+                    steps_per_epoch=(total_learn_files // batch_size),
+                    validation_steps=(total_validation_files // batch_size), verbose=1, validation_data=dataset_generator(VALIDATION_DIR, batch_size))
 
 # Checking the train and test loss and accuracy values from the neural network above.
 
@@ -220,11 +184,5 @@ fig.show()
 # Exporting plot image in PNG format.
 plt.savefig("./final_cnn_loss_accuracy.png", bbox_inches="tight")
 
-
-# serialize model to JSON
-model_json = model.to_json()
-with open("model.json", "w") as json_file:
-    json_file.write(model_json)
-# serialize weights to HDF5
-model.save_weights("model.h5")
+model.save("canny_edges")
 print("Saved model to disk")
