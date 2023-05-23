@@ -57,7 +57,7 @@ def static_image_face_detection():
 
   
 # For webcam input:
-def webcam_face_detection(capture, face_detection):
+def webcam_face_detection(capture, face_detection, model):
   if not capture.isOpened():
     print("Cannot open camera")
     exit()
