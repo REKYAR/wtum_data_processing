@@ -55,8 +55,10 @@ class GUIController:
         self.video_thread = None
 
         # a mutex for thread safe state changing
-        self.state_mutex = threading.Lock()
+        self.video_runnning_mutex = threading.Lock()
         self.video_progress_mutex = threading.Lock()
+
+        self.images_runnning_mutex = threading.Lock()
         self.images_progress_mutex = threading.Lock()
 
 
@@ -101,51 +103,77 @@ class GUIController:
 
         # camera capture tab
         if self.camera_button == True:
-            image = fd.webcam_face_detection(self.capture, self.face_detection)
+            image = fd.webcam_face_detection(self.capture, self.face_detection, self.model)
             imgui_ds.imgui_cv.image(image)
 
         # video tab
         elif self.video_button == True:
-            self.state_mutex.acquire()
+            self.video_runnning_mutex.acquire()
             if self.video_running == 0:
-                self.state_mutex.release()
+                self.video_runnning_mutex.release()
                 if imgui.button("Open file"):
                     file_path = filedialog.askopenfilename(initialdir="Videos",
                                                         title="Choose a video")
                     if file_path is not None:
                         try:
                             # start a thread for the model to work
-                            with self.state_mutex:
-                                self.video_running = 1
+                            self.video_running = 1
                             self.video_thread = threading.Thread(name="Video labeling thread", target=self.label_video, args=(file_path,))
                             self.video_thread.start()
                         except:
                             print("Could not open this file. Please check if it's a calid video file")
+                            self.images_running = 0
             else:
-                self.state_mutex.release()
+                self.video_runnning_mutex.release()
                 with self.video_progress_mutex:
-                    imgui.text_ansi(f"Completend in {self.video_progress}%")
+                    imgui.text(f"Completed in {self.video_progress}%")
 
         # image tab
         else:
-            imgui.text("Images placeholder")
+            self.images_runnning_mutex.acquire()
+            if self.images_running == 0:
+                self.images_runnning_mutex.release()
+                if imgui.button("Open file"):
+                    file_paths = filedialog.askopenfilenames(title="Choose multiple images")
+                    if file_paths is not None:
+                        try:
+                            # start a thread for the model to work
+                            self.images_running = 1
+                            self.images_thread = threading.Thread(name="Images labeling thread", target=self.label_images, args=(file_paths,))
+                            self.images_thread.start()
+                        except:
+                            print("Could not open some of these files. Please check if they are valid image files")
+                            self.images_running = 0
+            else:
+                self.images_runnning_mutex.release()
+                with self.images_progress_mutex:
+                    imgui.text(f"Completed in {self.images_progress}%")
 
         imgui.end()
 
-    def label_video(self, file_path):
-        time.sleep(1)
-        for i in range(10):
-            with self.video_progress_mutex:
-                self.video_progress += 10
-            time.sleep(1)
-        
-        # label
+    def set_video_progress(self, value):
+        with self.video_progress_mutex:
+            self.video_progress = value
 
-        # save
+    def set_images_progress(self, value):
+        with self.images_progress_mutex:
+            self.images_progress = value
+
+    def label_video(self, file_path):        
+        video_capture = cv2.VideoCapture(file_path)
+        fd.video_face_detection(video_capture, self.face_detection, self.model, self.set_video_progress)
 
         # clean up
-        with self.state_mutex:
+        with self.video_runnning_mutex:
             self.video_running = 0
+
+    def label_images(self, file_paths):
+        
+        fd.static_image_face_detection(file_paths, self.model, self.set_images_progress)
+
+        # clean up
+        with self.images_runnning_mutex:
+            self.images_running = 0
 
     def render_frame(self):
         glfw.poll_events()
