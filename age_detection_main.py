@@ -18,7 +18,6 @@ import tensorflow as tf
 
 
 class GUIController:
-
     def __init__(self, model):
         self.model = model
 
@@ -35,10 +34,16 @@ class GUIController:
 
         path_to_font = None
         io = imgui.get_io()
-        self.font = io.fonts.add_font_from_file_ttf(path_to_font, 30) if path_to_font is not None else None
+        self.font = (
+            io.fonts.add_font_from_file_ttf(path_to_font, 30)
+            if path_to_font is not None
+            else None
+        )
         self.impl.refresh_font_texture()
 
-        self.face_detection =  self.mp_face_detection.FaceDetection(model_selection=0, min_detection_confidence=0.5)
+        self.face_detection = self.mp_face_detection.FaceDetection(
+            model_selection=0, min_detection_confidence=0.5
+        )
 
         # buttons
         self.camera_button = True
@@ -61,6 +66,24 @@ class GUIController:
         self.images_runnning_mutex = threading.Lock()
         self.images_progress_mutex = threading.Lock()
 
+        self.camera_operational = True
+        # try out the camera
+        if not self.capture.isOpened():
+            self.camera_button = False
+            self.video_button = False
+            self.images_button = True
+
+            self.camera_operational = False
+            return
+
+        success, _ = self.capture.read()
+        if not success:
+            self.camera_button = False
+            self.video_button = False
+            self.images_button = True
+
+            self.camera_operational = False
+            return
 
     # main propgram loop
     def loop(self):
@@ -70,17 +93,26 @@ class GUIController:
         self.impl.shutdown()
         glfw.terminate()
 
-
     # defines the gui
     def frame_commands(self):
         io = imgui.get_io()
         if io.key_ctrl and io.keys_down[glfw.KEY_Q]:
             sys.exit(0)
 
-        imgui.set_next_window_position(0, 0, 1, pivot_x = 0, pivot_y = 0)
+        imgui.set_next_window_position(0, 0, 1, pivot_x=0, pivot_y=0)
         imgui.set_next_window_size(io.display_size.x, io.display_size.y)
 
-        imgui.begin( 'Age detection' , 0 , imgui.WINDOW_NO_RESIZE | imgui.WINDOW_NO_MOVE | imgui.WINDOW_NO_COLLAPSE | imgui.WINDOW_NO_SAVED_SETTINGS | imgui.WINDOW_NO_TITLE_BAR | imgui.WINDOW_NO_SCROLLBAR | imgui.WINDOW_NO_SCROLL_WITH_MOUSE )
+        imgui.begin(
+            "Age detection",
+            0,
+            imgui.WINDOW_NO_RESIZE
+            | imgui.WINDOW_NO_MOVE
+            | imgui.WINDOW_NO_COLLAPSE
+            | imgui.WINDOW_NO_SAVED_SETTINGS
+            | imgui.WINDOW_NO_TITLE_BAR
+            | imgui.WINDOW_NO_SCROLLBAR
+            | imgui.WINDOW_NO_SCROLL_WITH_MOUSE,
+        )
 
         if imgui.radio_button("Camera capture", self.camera_button):
             self.camera_button = True
@@ -103,8 +135,13 @@ class GUIController:
 
         # camera capture tab
         if self.camera_button == True:
-            image = fd.webcam_face_detection(self.capture, self.face_detection, self.model)
-            imgui_ds.imgui_cv.image(image)
+            if self.camera_operational == False:
+                imgui.text("There was an error during camera access")
+            else:
+                image = fd.webcam_face_detection(
+                    self.capture, self.face_detection, self.model
+                )
+                imgui_ds.imgui_cv.image(image)
 
         # video tab
         elif self.video_button == True:
@@ -112,16 +149,23 @@ class GUIController:
             if self.video_running == 0:
                 self.video_runnning_mutex.release()
                 if imgui.button("Open file"):
-                    file_path = filedialog.askopenfilename(initialdir="Videos",
-                                                        title="Choose a video")
+                    file_path = filedialog.askopenfilename(
+                        initialdir="Videos", title="Choose a video"
+                    )
                     if file_path is not None:
                         try:
                             # start a thread for the model to work
                             self.video_running = 1
-                            self.video_thread = threading.Thread(name="Video labeling thread", target=self.label_video, args=(file_path,))
+                            self.video_thread = threading.Thread(
+                                name="Video labeling thread",
+                                target=self.label_video,
+                                args=(file_path,),
+                            )
                             self.video_thread.start()
                         except:
-                            print("Could not open this file. Please check if it's a valid video file")
+                            print(
+                                "Could not open this file. Please check if it's a valid video file"
+                            )
                             self.images_running = 0
             else:
                 self.video_runnning_mutex.release()
@@ -134,15 +178,23 @@ class GUIController:
             if self.images_running == 0:
                 self.images_runnning_mutex.release()
                 if imgui.button("Open file"):
-                    file_paths = filedialog.askopenfilenames(title="Choose multiple images")
+                    file_paths = filedialog.askopenfilenames(
+                        title="Choose multiple images"
+                    )
                     if file_paths is not None:
                         try:
                             # start a thread for the model to work
                             self.images_running = 1
-                            self.images_thread = threading.Thread(name="Images labeling thread", target=self.label_images, args=(file_paths,))
+                            self.images_thread = threading.Thread(
+                                name="Images labeling thread",
+                                target=self.label_images,
+                                args=(file_paths,),
+                            )
                             self.images_thread.start()
                         except:
-                            print("Could not open some of these files. Please check if they are valid image files")
+                            print(
+                                "Could not open some of these files. Please check if they are valid image files"
+                            )
                             self.images_running = 0
             else:
                 self.images_runnning_mutex.release()
@@ -159,16 +211,17 @@ class GUIController:
         with self.images_progress_mutex:
             self.images_progress = value
 
-    def label_video(self, file_path):        
+    def label_video(self, file_path):
         video_capture = cv2.VideoCapture(file_path)
-        fd.video_face_detection(video_capture, self.face_detection, self.model, self.set_video_progress)
+        fd.video_face_detection(
+            video_capture, self.face_detection, self.model, self.set_video_progress
+        )
 
         # clean up
         with self.video_runnning_mutex:
             self.video_running = 0
 
     def label_images(self, file_paths):
-        
         fd.static_image_face_detection(file_paths, self.model, self.set_images_progress)
 
         # clean up
@@ -220,16 +273,16 @@ class GUIController:
 
 
 def main():
-
     # Load the model
     try:
         model = tf.keras.models.load_model("Models\\canny_edges.h5")
     except:
-        print("Could not load the keras model. Make sure it's present in \'./Models/\'")
+        print("Could not load the keras model. Make sure it's present in './Models/'")
 
     controller = GUIController(model)
 
     controller.loop()
+
 
 if __name__ == "__main__":
     main()
