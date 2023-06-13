@@ -121,7 +121,7 @@ class GUIController:
                             self.video_thread = threading.Thread(name="Video labeling thread", target=self.label_video, args=(file_path,))
                             self.video_thread.start()
                         except:
-                            print("Could not open this file. Please check if it's a calid video file")
+                            print("Could not open this file. Please check if it's a valid video file")
                             self.images_running = 0
             else:
                 self.video_runnning_mutex.release()
