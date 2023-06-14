@@ -16,6 +16,9 @@ __pycache__/
 *.jpeg
 *.png
 
+# Models
+*.h5
+
 # C extensions
 *.so
 
