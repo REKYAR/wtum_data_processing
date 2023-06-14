@@ -107,112 +107,106 @@ VALIDATION_DIR = "/media/filip/data/Użytkownicy/filip/Documents/Studia/sem6/War
 total_learn_files = len(os.listdir(LEARN_DIR))
 total_validation_files = len(os.listdir(VALIDATION_DIR))
 
-BATCH_SIZE = 16
+BATCH_SIZE = 128
 
-print("Constructing model...")
-model = Sequential()
-model.add(
-    Conv2D(
-        32,
-        (7, 7),
-        strides=1,
-        activation="relu",
-        input_shape=(200, 200, 1),
-        padding="same"
+def main():
+
+    print("Constructing model...")
+    model = Sequential()
+    model.add(
+        Conv2D(
+            32,
+            (7, 7),
+            strides=1,
+            activation="relu",
+            input_shape=(200, 200, 1),
+            padding="same"
+        )
     )
-)
 
-############################################################
-# ctrl+v the model here:
+    ############################################################
+    # ctrl+v the model here:
 
-# 83 reg (32,7,7)
-model.add(MaxPool2D((2, 2), strides=2, padding="same"))
-model.add(Conv2D(32, (5, 5), strides=1, padding="same", activation="relu"))
-model.add(MaxPool2D((2, 2), strides=2, padding="same"))
-model.add(Dropout(0.2))
-model.add(Conv2D(64, (3, 3), strides=1, padding="same", activation="relu"))
-model.add(Conv2D(128, (3, 3), strides=2, padding="same", activation="relu"))
-model.add(MaxPool2D((2, 2), strides=2, padding="same"))
-model.add(Dropout(0.2))
-model.add(Flatten())
-model.add(Dense(units=512, activation="relu"))
-model.add(Dropout(0.5))
-model.add(Dense(units=512, activation="relu"))
-model.add(Dropout(0.5))
+    model.add(MaxPool2D((2, 2), strides=2, padding="same"))
+    model.add(Conv2D(32, (5, 5), strides=1, padding="same", activation="relu"))
+    model.add(MaxPool2D((2, 2), strides=2, padding="same"))
+    model.add(Dropout(0.15))
+    model.add(Conv2D(64, (3, 3), strides=1, padding="same", activation="relu"))
+    model.add(Conv2D(128, (3, 3), strides=2, padding="same", activation="relu"))
+    model.add(MaxPool2D((2, 2), strides=2, padding="same"))
+    model.add(Dropout(0.15))
+    model.add(Flatten())
+    model.add(Dense(units=512, activation="relu"))
+    model.add(Dropout(0.6))
+    model.add(Dense(units=512, activation="relu"))
+    model.add(Dropout(0.6))
 
-############################################################
+    ############################################################
 
-model.add(Dense(units=1, activation="linear"))
-# model.add(Dense(units=NUM_CATEGORIES, activation="softmax"))
-model.summary()
+    model.add(Dense(units=1, activation="linear"))
+    # model.add(Dense(units=NUM_CATEGORIES, activation="softmax"))
+    model.summary()
 
-print("Compiling model...")
-# lr_schedule = keras.optimizers.schedules.ExponentialDecay(
-#     initial_learning_rate=0.1,
-#     decay_steps=100000,
-#     decay_rate=0.96,
-#     staircase=True
-# )
-# opt = keras.optimizers.Adam(learning_rate=lr_schedule)
+    print("Compiling model...")
+    model.compile(loss="mean_squared_error", metrics=["accuracy"], optimizer="adam")
+    # model.compile(loss="categorical_crossentropy", metrics=["accuracy"], optimizer="adam")
 
-# model = ResNet18(NUM_CATEGORIES)
-# model.build(input_shape=(200, 200, 1))
-# model.compile(loss="categorical_crossentropy", metrics=["accuracy"], optimizer="adam")
-model.compile(loss="mean_squared_error", metrics=["accuracy"], optimizer="adam")
+    print("Training model...")
+    history = model.fit_generator(generator=dataset_generator(LEARN_DIR, BATCH_SIZE), epochs=15,
+                        steps_per_epoch=(total_learn_files // BATCH_SIZE),
+                        validation_steps=(total_validation_files // BATCH_SIZE),
+                        verbose=1, validation_data=dataset_generator(VALIDATION_DIR, BATCH_SIZE))
 
-print("Training model...")
-history = model.fit_generator(generator=dataset_generator(LEARN_DIR, BATCH_SIZE), epochs=15,
-                    steps_per_epoch=(total_learn_files // BATCH_SIZE),
-                    validation_steps=(total_validation_files // BATCH_SIZE),
-                    verbose=1, validation_data=dataset_generator(VALIDATION_DIR, BATCH_SIZE))
+    # Checking the train and test loss and accuracy values from the neural network above.
 
-# Checking the train and test loss and accuracy values from the neural network above.
+    train_loss = history.history["loss"]
+    test_loss = history.history["val_loss"]
+    train_accuracy = history.history["accuracy"]
+    test_accuracy = history.history["val_accuracy"]
 
-train_loss = history.history["loss"]
-test_loss = history.history["val_loss"]
-train_accuracy = history.history["accuracy"]
-test_accuracy = history.history["val_accuracy"]
+    # Plotting a line chart to visualize the loss and accuracy values by epochs.
 
-# Plotting a line chart to visualize the loss and accuracy values by epochs.
+    fig, ax = plt.subplots(ncols=2, figsize=(15, 7))
 
-fig, ax = plt.subplots(ncols=2, figsize=(15, 7))
+    ax = ax.ravel()
 
-ax = ax.ravel()
+    ax[0].plot(train_loss, label="Train Loss", color="royalblue", marker="o", markersize=2)
+    ax[0].plot(test_loss, label="Test Loss", color="orangered", marker="o", markersize=2)
 
-ax[0].plot(train_loss, label="Train Loss", color="royalblue", marker="o", markersize=2)
-ax[0].plot(test_loss, label="Test Loss", color="orangered", marker="o", markersize=2)
+    ax[0].set_xlabel("Epochs", fontsize=14)
+    ax[0].set_ylabel("Categorical Crossentropy", fontsize=14)
 
-ax[0].set_xlabel("Epochs", fontsize=14)
-ax[0].set_ylabel("Categorical Crossentropy", fontsize=14)
+    ax[0].legend(fontsize=14)
+    ax[0].tick_params(axis="both", labelsize=12)
 
-ax[0].legend(fontsize=14)
-ax[0].tick_params(axis="both", labelsize=12)
+    ax[1].plot(
+        train_accuracy, label="Train Accuracy", color="royalblue", marker="o", markersize=2
+    )
+    ax[1].plot(
+        test_accuracy, label="Test Accuracy", color="orangered", marker="o", markersize=2
+    )
 
-ax[1].plot(
-    train_accuracy, label="Train Accuracy", color="royalblue", marker="o", markersize=2
-)
-ax[1].plot(
-    test_accuracy, label="Test Accuracy", color="orangered", marker="o", markersize=2
-)
+    ax[1].set_xlabel("Epochs", fontsize=14)
+    ax[1].set_ylabel("Accuracy", fontsize=14)
 
-ax[1].set_xlabel("Epochs", fontsize=14)
-ax[1].set_ylabel("Accuracy", fontsize=14)
-
-ax[1].legend(fontsize=14)
-ax[1].tick_params(axis="both", labelsize=12)
+    ax[1].legend(fontsize=14)
+    ax[1].tick_params(axis="both", labelsize=12)
 
 
-fig.suptitle(
-    x=0.5,
-    y=0.92,
-    t="Lineplots showing loss and accuracy of CNN model by epochs",
-    fontsize=16,
-)
+    fig.suptitle(
+        x=0.5,
+        y=0.92,
+        t="Lineplots showing loss and accuracy of CNN model by epochs",
+        fontsize=16,
+    )
 
-fig.show()
+    fig.show()
 
-# Exporting plot image in PNG format.
-plt.savefig("./final_cnn_loss_accuracy.png", bbox_inches="tight")
+    # Exporting plot image in PNG format.
+    plt.savefig("./final_cnn_loss_accuracy.png", bbox_inches="tight")
 
-model.save("przygody_w_pociagu.h5", save_format='h5')
-print("Saved model to disk")
+    model.save("model.h5", save_format='h5')
+    print("Saved model to disk")
+
+if __name__ == "__main__":
+    main()

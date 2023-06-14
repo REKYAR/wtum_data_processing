@@ -208,3 +208,33 @@
 # model.add(Dropout(0.1))
 # # model.add(Dense(units=64, activation='relu')),
 # # model.add(Dropout(0.1))
+
+# # 88.6594 sobel
+# model.add(MaxPool2D((2, 2), strides=2, padding="same"))
+# model.add(Conv2D(32, (5, 5), strides=1, padding="same", activation="relu"))
+# model.add(MaxPool2D((2, 2), strides=2, padding="same"))
+# model.add(Dropout(0.1))
+# model.add(Conv2D(64, (3, 3), strides=1, padding="same", activation="relu"))
+# model.add(Conv2D(128, (3, 3), strides=2, padding="same", activation="relu"))
+# model.add(MaxPool2D((2, 2), strides=2, padding="same"))
+# model.add(Dropout(0.2))
+# model.add(Flatten())
+# model.add(Dense(units=512, activation="relu"))
+# model.add(Dropout(0.55))
+# model.add(Dense(units=512, activation="relu"))
+# model.add(Dropout(0.55))
+
+# # 83 greyscale
+# model.add(MaxPool2D((2, 2), strides=2, padding="same"))
+# model.add(Conv2D(32, (5, 5), strides=1, padding="same", activation="relu"))
+# model.add(MaxPool2D((2, 2), strides=2, padding="same"))
+# model.add(Dropout(0.15))
+# model.add(Conv2D(64, (3, 3), strides=1, padding="same", activation="relu"))
+# model.add(Conv2D(128, (3, 3), strides=2, padding="same", activation="relu"))
+# model.add(MaxPool2D((2, 2), strides=2, padding="same"))
+# model.add(Dropout(0.15))
+# model.add(Flatten())
+# model.add(Dense(units=512, activation="relu"))
+# model.add(Dropout(0.6))
+# model.add(Dense(units=512, activation="relu"))
+# model.add(Dropout(0.6))
