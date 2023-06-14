@@ -108,7 +108,11 @@ def static_image_face_detection(image_files, model, set_images_progress):
         for idx, file in enumerate(image_files):
             i += 1
             set_images_progress(100 * i / total)
-            image = cv2.imread(file)
+            # image = cv2.imread(file)
+            stream = open(file, "rb")
+            bytes = bytearray(stream.read())
+            numpyarray = np.asarray(bytes, dtype=np.uint8)
+            image = cv2.imdecode(numpyarray, cv2.IMREAD_UNCHANGED)
             # Convert the BGR image to RGB and process it with MediaPipe Face Detection.
             results = face_detection.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
 

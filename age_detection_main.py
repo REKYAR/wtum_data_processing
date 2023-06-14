@@ -276,7 +276,7 @@ def main():
     # Load the model
     try:
         # model = tf.keras.models.load_model("Models\\canny_edges.h5")
-        model = tf.keras.models.load_model("Models\\przygody_w_pociagu_97.h5")
+        model = tf.keras.models.load_model("Models\\model_87.h5")
     except:
         print("Could not load the keras model. Make sure it's present in './Models/'")
 
