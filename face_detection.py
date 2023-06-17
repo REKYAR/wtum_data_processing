@@ -87,9 +87,9 @@ def ProcessDetection(detection, original_frame, model):
     filtered_image = filtered_image[..., np.newaxis]
     filtered_image = np.expand_dims(filtered_image, axis=0)
     # predict age
-    prediction = model.predict(filtered_image)
+    prediction = model.predict(filtered_image, verbose=0)
     predicted_age = int(prediction[0][0])
-    print(prediction)
+    # print(prediction)
     DrawRectangle(original_frame, data.xmin, data.ymin, data.width, data.height)
     AddAgeAnnotation(
         original_frame, data.xmin, data.ymin, data.width, data.height, predicted_age
@@ -109,8 +109,8 @@ def static_image_face_detection(image_files, model, set_images_progress):
             i += 1
             set_images_progress(100 * i / total)
             # image = cv2.imread(file)
-            stream = open(file, "rb")
-            bytes = bytearray(stream.read())
+            with open(file, "rb") as stream:
+                bytes = bytearray(stream.read())
             numpyarray = np.asarray(bytes, dtype=np.uint8)
             image = cv2.imdecode(numpyarray, cv2.IMREAD_UNCHANGED)
             # Convert the BGR image to RGB and process it with MediaPipe Face Detection.
@@ -122,7 +122,10 @@ def static_image_face_detection(image_files, model, set_images_progress):
             annotated_image = image.copy()
             idx = 0
             for detection in results.detections:
-                ProcessDetection(detection, annotated_image, model)
+                try:
+                    ProcessDetection(detection, annotated_image, model)
+                except:
+                    continue
 
             if not os.path.isdir("./Annotated_images"):
                 os.mkdir("./Annotated_images")
