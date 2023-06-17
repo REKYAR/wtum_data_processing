@@ -9,6 +9,7 @@ import cv2
 import mediapipe as mp
 import os
 from pathlib import Path
+import math
 
 mp_face_detection = mp.solutions.face_detection
 mp_drawing = mp.solutions.drawing_utils
@@ -88,7 +89,7 @@ def ProcessDetection(detection, original_frame, model):
     filtered_image = np.expand_dims(filtered_image, axis=0)
     # predict age
     prediction = model.predict(filtered_image, verbose=0)
-    predicted_age = int(prediction[0][0])
+    predicted_age = int(math.sqrt(prediction[0][0] if prediction[0][0] > 0 else 0))
     # print(prediction)
     DrawRectangle(original_frame, data.xmin, data.ymin, data.width, data.height)
     AddAgeAnnotation(
