@@ -87,9 +87,12 @@ def ProcessDetection(detection, original_frame, model):
     # add dimensions so the image fits the model input
     filtered_image = filtered_image[..., np.newaxis]
     filtered_image = np.expand_dims(filtered_image, axis=0)
+    # print(filtered_image.shape)
     # predict age
     prediction = model.predict(filtered_image, verbose=0)
-    predicted_age = int(math.sqrt(prediction[0][0] if prediction[0][0] > 0 else 0))
+    predicted_age = 0
+    if int(prediction[0][0]) > 0:
+        predicted_age = int(math.sqrt(int(prediction[0][0])))
     # print(prediction)
     DrawRectangle(original_frame, data.xmin, data.ymin, data.width, data.height)
     AddAgeAnnotation(
@@ -109,7 +112,6 @@ def static_image_face_detection(image_files, model, set_images_progress):
         for idx, file in enumerate(image_files):
             i += 1
             set_images_progress(100 * i / total)
-            # image = cv2.imread(file)
             with open(file, "rb") as stream:
                 bytes = bytearray(stream.read())
             numpyarray = np.asarray(bytes, dtype=np.uint8)
@@ -172,13 +174,15 @@ def webcam_face_detection(capture, face_detection, model):
 
 # For video input
 def video_face_detection(capture, face_detection, model, set_video_progression):
-    fourcc = cv2.VideoWriter_fourcc(*"XVID")
-    out = cv2.VideoWriter("output.avi", fourcc, 20.0, (640, 400))
-
     if not capture.isOpened():
         print("Cannot read file")
         exit()
     length = int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
+    frame_height = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    frame_width = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH))
+
+    fourcc = cv2.VideoWriter_fourcc(*"XVID")
+    out = cv2.VideoWriter("output.avi", fourcc, 20.0, (frame_width, frame_height))
 
     i = 0
     while True:
@@ -202,5 +206,6 @@ def video_face_detection(capture, face_detection, model, set_video_progression):
             for detection in results.detections:
                 ProcessDetection(detection, image, model)
 
-        out.write(cv2.resize(image, (640, 400)))
+        out.write(cv2.resize(image, (frame_width, frame_height)))
+
     out.release()
